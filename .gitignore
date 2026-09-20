@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.job_cache.json
+application_kit.html
+.idea/
+.claude/
+.serena/
+.playwright-mcp/
