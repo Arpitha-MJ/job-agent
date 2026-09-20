@@ -278,6 +278,13 @@ SOURCES = {
         "token": "commvault",
         "job_url_prefix": "https://job-boards.greenhouse.io/commvault",
     },
+    # Twilio: Greenhouse board; 9 engineering roles in Remote - India including
+    # Principal Engineer, Staff SWE, Senior Engineering Manager, Software Architect.
+    "twilio": {
+        "type": "greenhouse",
+        "token": "twilio",
+        "job_url_prefix": "https://job-boards.greenhouse.io/twilio",
+    },
 }
 
 # --- Description cache -------------------------------------------------------
