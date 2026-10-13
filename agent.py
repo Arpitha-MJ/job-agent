@@ -285,6 +285,64 @@ SOURCES = {
         "token": "twilio",
         "job_url_prefix": "https://job-boards.greenhouse.io/twilio",
     },
+    # Databricks: Greenhouse board; 47 IC SWE roles in Bengaluru including
+    # Senior SWE (Backend, Data Platform, Infra, Networking, Observability).
+    # Strong Java/Scala/distributed-systems fit.
+    "databricks": {
+        "type": "greenhouse",
+        "token": "databricks",
+        "job_url_prefix": "https://job-boards.greenhouse.io/databricks",
+    },
+    # Stripe: Greenhouse board; 8 SWE roles in India including Software Engineer
+    # (Internal Systems, Stripe Data Pipeline). Remote-India and Bengaluru mix.
+    "stripe": {
+        "type": "greenhouse",
+        "token": "stripe",
+        "job_url_prefix": "https://job-boards.greenhouse.io/stripe",
+    },
+    # Rubrik: Greenhouse board; 11 SWE roles in India (Bengaluru) including
+    # Principal Engineer, Security Engineer IAM, Senior Engineering Manager.
+    # Data management / cloud security company with strong BLR engineering center.
+    "rubrik": {
+        "type": "greenhouse",
+        "token": "rubrik",
+        "job_url_prefix": "https://job-boards.greenhouse.io/rubrik",
+    },
+    # Druva: Greenhouse board; 8 SWE roles in India including Senior Staff SWE,
+    # Senior Staff Engineer (Product Security). Cloud data protection; BLR HQ.
+    "druva": {
+        "type": "greenhouse",
+        "token": "druva",
+        "job_url_prefix": "https://job-boards.greenhouse.io/druva",
+    },
+    # GitLab: Greenhouse board; 21 SWE roles in India (Bengaluru) including
+    # Engineering Manager, Senior Backend Engineer. Fully remote-first, BLR office.
+    "gitlab": {
+        "type": "greenhouse",
+        "token": "gitlab",
+        "job_url_prefix": "https://job-boards.greenhouse.io/gitlab",
+    },
+    # New Relic: Greenhouse board; 6 SWE roles in India including Lead SWE,
+    # Manager SWE. Observability/APM; Bengaluru engineering center.
+    "newrelic": {
+        "type": "greenhouse",
+        "token": "newrelic",
+        "job_url_prefix": "https://job-boards.greenhouse.io/newrelic",
+    },
+    # Sumo Logic: Greenhouse board; 3 Staff SWE roles in India (Bengaluru + Remote-India).
+    # Log analytics / SIEM; small but high-quality BLR engineering team.
+    "sumologic": {
+        "type": "greenhouse",
+        "token": "sumologic",
+        "job_url_prefix": "https://job-boards.greenhouse.io/sumologic",
+    },
+    # Elastic: Greenhouse board; 2 SWE roles in India. Search/observability stack
+    # (Elasticsearch, Kibana). Distributed team with India presence.
+    "elastic": {
+        "type": "greenhouse",
+        "token": "elastic",
+        "job_url_prefix": "https://job-boards.greenhouse.io/elastic",
+    },
 }
 
 # --- Description cache -------------------------------------------------------
@@ -598,6 +656,24 @@ def prefilter_score(job, profile):
     return title_bonus + loc_bonus - penalty
 
 
+_HARD_AVOID = re.compile(
+    r"\b(intern|internship|co.?op|apprentice|trainee|fresher|entry.?level|"
+    r"graduate\s+engineer|campus\s+hire|new\s+grad|"
+    r"account\s+(executive|manager|representative|development|director)|"
+    r"(?<!\w)sales(?!\s+(engineer|engineering))|business\s+development|pre.?sales|solution\s+selling|"
+    r"real\s+estate|(?<!\w)analyst(?!\s*(engineer|platform|data\s+engineer))|"
+    r"financial\s+analyst|business\s+analyst|legal|compliance|"
+    r"recruiter|sourcer|talent\s+acquisition|human\s+resources?|"
+    r"marketing|content\s+writer|copywriter|brand|"
+    r"customer\s+success|customer\s+support|technical\s+support|"
+    r"administrative|office\s+manager|executive\s+assistant|"
+    r"product\s+manager|program\s+manager|project\s+manager|"
+    r"scrum\s+master|agile\s+coach|"
+    r"data\s+scientist(?!\s*engineer)|research\s+scientist|"
+    r"designer|(?<!\w)ux(?!\s*(engineer|engineering))|ui\s+designer|graphic)\b",
+    re.IGNORECASE,
+)
+
 def passes_filters(job, description, profile):
     """Hard filter: keep Bangalore or Remote-India roles the candidate isn't under-qualified for.
 
@@ -606,6 +682,10 @@ def passes_filters(job, description, profile):
     actually include Bangalore). Experience drops roles requiring MORE years
     than the candidate has; roles with no stated requirement are kept.
     """
+    title = job["title"]
+    if _HARD_AVOID.search(title):
+        return False, "intern/fresher/trainee title"
+
     hay = (job["location"] + " " + job.get("external_path", "") + " " + description).lower()
     is_bangalore = "bangalore" in hay or "bengaluru" in hay
     is_remote_india = "remote" in hay and "india" in hay
@@ -687,11 +767,10 @@ def write_application_kit(ranked, contact, resume_path, out_dir):
     all_companies = set()
     all_skills = set()
     for i, (s, matched, reasons, j) in enumerate(ranked, 1):
-        rating = rating_1_to_10(s)
-        # Rating band: 1-3 = strong (green), 4-6 = decent (amber), 7-10 = weak (grey).
-        band = "strong" if rating <= 3 else ("mid" if rating <= 6 else "weak")
-        pills = "".join(f'<span class="pill">{html.escape(m)}</span>' for m in matched) \
-            or '<span class="pill empty">no direct skill matches</span>'
+        rating = rating_1_to_5(s)
+        # Rating band: 1-2 = strong (green), 3 = decent (amber), 4-5 = weak (grey).
+        band = "strong" if rating <= 2 else ("mid" if rating <= 3 else "weak")
+        pills = "".join(f'<span class="pill">{html.escape(m)}</span>' for m in matched)
         exp_line = next((r for r in reasons if "req, you have" in r), "not stated in posting")
         company = j.get('company', '')
         all_companies.add(company)
@@ -708,7 +787,7 @@ def write_application_kit(ranked, contact, resume_path, out_dir):
           <div class="job-head">
             <span class="rank">#{i}</span>
             <h2 class="job-title">{html.escape(j['title'])}</h2>
-            <span class="badge {band}" title="1 = best match">{rating}<small>/10</small></span>
+            <span class="badge {band}" title="1 = best match">{rating}<small>/5</small></span>
           </div>
           <div class="meta">
             <span class="company">{html.escape(company)}</span>
@@ -819,7 +898,7 @@ def write_application_kit(ranked, contact, resume_path, out_dir):
       <span><b>Links</b>{links}</span>
       <span><b>Resume</b>{html.escape(resume_path)}</span>
     </div>
-    <p class="summary">Showing all {shown} matches &middot; rating <b>1 = best</b>, 10 = weakest. Applied state is saved in this browser.</p>
+    <p class="summary">Showing all {shown} matches &middot; rating <b>1 = best</b>, 5 = weakest. Applied state is saved in this browser.</p>
     <div class="filters">
       <div class="row">
         <select id="f-company">
@@ -828,9 +907,9 @@ def write_application_kit(ranked, contact, resume_path, out_dir):
         </select>
         <select id="f-rating">
           <option value="">All ratings</option>
-          <option value="1-3">Strong (1-3)</option>
-          <option value="4-6">Decent (4-6)</option>
-          <option value="7-10">Weak (7-10)</option>
+          <option value="1-2">Strong (1-2)</option>
+          <option value="3-3">Decent (3)</option>
+          <option value="4-5">Weak (4-5)</option>
         </select>
         <select id="f-applied">
           <option value="">All</option>
@@ -894,7 +973,7 @@ def write_application_kit(ranked, contact, resume_path, out_dir):
         var appl = appliedSel.value;
         var q = search.value.trim().toLowerCase();
         var skills = activeSkills();
-        var lo = 0, hi = 10;
+        var lo = 0, hi = 5;
         if(band){{ var p = band.split('-'); lo = +p[0]; hi = +p[1]; }}
         var visible = 0;
         jobs.forEach(function(job){{
@@ -967,17 +1046,13 @@ def write_application_kit(ranked, contact, resume_path, out_dir):
     return path
 
 
-def rating_1_to_10(raw_score):
-    """Map an unbounded raw score to a 1-10 rating where 1 = best match.
-
-    Thresholds tuned to the current weighting (a strong backend role scores
-    ~20+, a weak/penalized one scores low or negative).
-    """
-    thresholds = [20, 16, 12, 9, 6, 4, 2, 0, -4]  # rating 1..9; below all = 10
+def rating_1_to_5(raw_score):
+    """Map raw score to 1-5 rating where 1 = best match."""
+    thresholds = [20, 12, 6, 2]  # rating 1..4; below all = 5
     for i, t in enumerate(thresholds, start=1):
         if raw_score >= t:
             return i
-    return 10
+    return 5
 
 
 def posted_age_hours(job):
@@ -1040,6 +1115,32 @@ def is_recent(job, max_hours=MAX_AGE_HOURS):
     return age is None or age <= max_hours
 
 
+# Per-host semaphore: max 4 concurrent detail fetches to same ATS host.
+# Polite without the 0.3s serial sleep that made 50 jobs cost 15s per company.
+_HOST_SEMS = {}
+_HOST_SEMS_LOCK = threading.Lock()
+_DESC_WORKERS = 12  # concurrent description fetches across all companies
+
+def _host_sem(company):
+    host = SOURCES[company].get("url", SOURCES[company].get("host", company))
+    # Key on ATS type so all Greenhouse companies share one semaphore, etc.
+    key = SOURCES[company]["type"]
+    with _HOST_SEMS_LOCK:
+        if key not in _HOST_SEMS:
+            _HOST_SEMS[key] = threading.Semaphore(4)
+        return _HOST_SEMS[key]
+
+
+def _fetch_desc_limited(company, j):
+    """Fetch description with per-ATS concurrency limit. No fixed sleep."""
+    if j.get("description"):
+        return j, j["description"]
+    sem = _host_sem(company)
+    with sem:
+        desc = fetch_description(company, j["external_path"])
+    return j, desc
+
+
 def collect_ranked(company, max_age=MAX_AGE_HOURS):
     """Fetch, filter, and score one company's jobs. Returns (ranked, dropped)."""
     print(f"Fetching live jobs from {company}...")
@@ -1066,20 +1167,30 @@ def collect_ranked(company, max_age=MAX_AGE_HOURS):
     jobs.sort(key=lambda j: (_location_priority(j), -j["_pref"]))
     top = jobs[:50]
 
+    # Fetch all descriptions in parallel (semaphore limits per-ATS concurrency).
+    needs_fetch = [j for j in top if not j.get("description")]
+    with ThreadPoolExecutor(max_workers=_DESC_WORKERS) as desc_pool:
+        futures = {desc_pool.submit(_fetch_desc_limited, company, j): j for j in needs_fetch}
+        desc_map = {}
+        for fut in as_completed(futures):
+            j, desc = fut.result()
+            desc_map[id(j)] = desc
+    for j in top:
+        if not j.get("description"):
+            j["_desc"] = desc_map.get(id(j), "")
+
     ranked = []
     dropped = 0
     for j in top:
-        # lever/atlassian carry the description inline; workday/greenhouse need a detail fetch.
-        desc = j.get("description") or fetch_description(company, j["external_path"])
+        desc = j.get("description") or j.get("_desc", "")
         keep, why = passes_filters(j, desc, PROFILE)
         if not keep:
             dropped += 1
         else:
             s, matched, reasons = score_job(j, PROFILE, desc)
-            ranked.append((s, matched, reasons, j))
-        # Only sleep for types that do a per-job detail fetch (lever/atlassian embed it).
-        if SOURCES[company]["type"] in ("workday", "greenhouse", "oracle", "smartrecruiters"):
-            time.sleep(0.3)  # polite rate-limit for per-job detail calls
+            skill_weight = sum(PROFILE["skills"].get(m, 0) for m in matched)
+            if matched and skill_weight >= 4 and rating_1_to_5(s) <= 4:
+                ranked.append((s, matched, reasons, j))
     print(f"  {company}: kept {len(ranked)}, filtered out {dropped}"
           f" ({n_stale} dropped as older than {max_age}h)")
     return ranked, dropped
@@ -1113,7 +1224,7 @@ def main():
     max_age = args.max_age
     ranked = []
     t0 = time.time()
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    with ThreadPoolExecutor(max_workers=16) as pool:
         futures = {pool.submit(collect_ranked, c, max_age): c for c in companies}
         for fut in as_completed(futures):
             r, _ = fut.result()
@@ -1126,7 +1237,7 @@ def main():
     print("TOP MATCHES: Bangalore + experience-fit for Arpitha (4 yrs, Java/Spring)")
     print("=" * 78)
     for i, (s, matched, reasons, j) in enumerate(ranked[:args.top], 1):
-        print(f"\n#{i}  [match {rating_1_to_10(s)}/10, 1=best]  {j['title']}  ({j.get('company','?')})")
+        print(f"\n#{i}  [match {rating_1_to_5(s)}/5, 1=best]  {j['title']}  ({j.get('company','?')})")
         print(f"    Location : {j['location']}")
         print(f"    Skills   : {', '.join(matched) if matched else '(none matched)'}")
         if reasons:
